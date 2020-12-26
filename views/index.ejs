@@ -4,14 +4,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" href="#">
   <title>My personal server</title>
 </head>
-
 <body>
   <h1>Bookmarks</h1>
+  <div>Welcome back, <%= user.nickname %> </div>
   <div id="message"></div>
-  <button id="update-btn">Replace Yoda's quote</button>
-  <button id="delete-button">Delete Darth Vadar's quote</button>
+  <!-- <button id="update-btn">Replace Yoda's quote</button> -->
+  <button id="delete-button">Delete dom's quote</button>
   <form action="/bookmarks" method="POST">
     <input type="text" placeholder="name" name="name">
     <input type="text" placeholder="quote" name="quote">
@@ -20,6 +21,9 @@
   <ul>
     <% for(var i=0; i < bookmarks.length; i++) {%>
       <li>
+        <span>
+          <%= bookmarks[i]._id %>
+        </span> - 
         <span><%= bookmarks[i].name %></span>: 
         <span><%= bookmarks[i].quote %></span>
       </li>

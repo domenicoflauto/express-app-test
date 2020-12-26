@@ -1,9 +1,12 @@
 const express = require("express");
+const cors = require("cors");
 const MongoClient = require("mongodb").MongoClient;
 
 const app = express();
 const port = 3000;
 require("dotenv").config();
+
+app.use(cors());
 
 const { auth, requiresAuth } = require("express-openid-connect");
 
@@ -11,7 +14,7 @@ MongoClient.connect(process.env.MONGO_SECRET, { useUnifiedTopology: true })
   .then((client) => {
     console.log("connected to DB");
     const db = client.db("bookmarksDB");
-    const bookmarksCollection = db.collection("bookmarks");
+    // const bookmarksCollection = db.collection("bookmarks");
 
     app.set("view engine", "ejs");
     app.use(
@@ -31,18 +34,21 @@ MongoClient.connect(process.env.MONGO_SECRET, { useUnifiedTopology: true })
 
     app.get("/", (req, res) => {
       if (req.oidc.isAuthenticated()) {
-        db.collection("bookmarks")
+        db.collection(req.oidc.user.nickname)
           .find()
           .toArray()
           .then((results) => {
-            res.render("index.ejs", { bookmarks: results });
+            res.render("index.ejs", {
+              bookmarks: results,
+              user: req.oidc.user,
+            });
           })
           .catch((error) => console.error(error));
       } else res.send("logged out");
     });
 
     app.get("/bookmarks", (req, res) => {
-      db.collection("bookmarks")
+      db.collection(req.oidc.user.nickname)
         .find()
         .toArray()
         .then((results) => {
@@ -52,7 +58,7 @@ MongoClient.connect(process.env.MONGO_SECRET, { useUnifiedTopology: true })
     });
 
     app.post("/bookmarks", (req, res) => {
-      bookmarksCollection
+      db.collection(req.oidc.user.nickname)
         .insertOne(req.body)
         .then((result) => {
           res.redirect("/");
@@ -61,7 +67,7 @@ MongoClient.connect(process.env.MONGO_SECRET, { useUnifiedTopology: true })
     });
 
     app.put("/bookmarks", (req, res) => {
-      bookmarksCollection
+      db.collection(req.oidc.user.nickname)
         .findOneAndUpdate(
           { name: "dom" },
           {
@@ -81,7 +87,7 @@ MongoClient.connect(process.env.MONGO_SECRET, { useUnifiedTopology: true })
     });
 
     app.delete("/bookmarks", (req, res) => {
-      bookmarksCollection
+      db.collection(req.oidc.user.nickname)
         .deleteOne({ name: req.body.name })
         .then((result) => {
           if (result.deletedCount === 0) {
@@ -93,7 +99,7 @@ MongoClient.connect(process.env.MONGO_SECRET, { useUnifiedTopology: true })
     });
 
     app.get("/profile", requiresAuth(), (req, res) => {
-      res.send(JSON.stringify(req.oidc.user));
+      res.json(req.oidc.user);
     });
 
     app.listen(port, () => {
