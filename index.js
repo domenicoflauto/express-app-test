@@ -3,27 +3,50 @@ const MongoClient = require("mongodb").MongoClient;
 
 const app = express();
 const port = 3000;
+require("dotenv").config();
 
-MongoClient.connect(
-  "mongodb+srv://domenico:zLD9eTAf8eisJzQG@mongodf.b1spd.mongodb.net/BookmarksDB?retryWrites=true&w=majority",
-  { useUnifiedTopology: true }
-)
+const { auth, requiresAuth } = require("express-openid-connect");
+
+MongoClient.connect(process.env.MONGO_SECRET, { useUnifiedTopology: true })
   .then((client) => {
     console.log("connected to DB");
     const db = client.db("bookmarksDB");
     const bookmarksCollection = db.collection("bookmarks");
 
     app.set("view engine", "ejs");
+    app.use(
+      auth({
+        authRequired: false,
+        auth0Logout: true,
+        issuerBaseURL: process.env.ISSUER_BASE_URL,
+        baseURL: process.env.BASE_URL,
+        clientID: process.env.CLIENT_ID,
+        secret: process.env.SECRET,
+      })
+    );
+
     app.use(express.static("public"));
     app.use(express.urlencoded({ extended: true }));
     app.use(express.json());
 
     app.get("/", (req, res) => {
+      if (req.oidc.isAuthenticated()) {
+        db.collection("bookmarks")
+          .find()
+          .toArray()
+          .then((results) => {
+            res.render("index.ejs", { bookmarks: results });
+          })
+          .catch((error) => console.error(error));
+      } else res.send("logged out");
+    });
+
+    app.get("/bookmarks", (req, res) => {
       db.collection("bookmarks")
         .find()
         .toArray()
         .then((results) => {
-          res.render("index.ejs", { bookmarks: results });
+          res.send(results);
         })
         .catch((error) => console.error(error));
     });
@@ -69,8 +92,8 @@ MongoClient.connect(
         .catch((error) => console.error(error));
     });
 
-    app.get("/dom", (req, res) => {
-      res.send("yeeeeee");
+    app.get("/profile", requiresAuth(), (req, res) => {
+      res.send(JSON.stringify(req.oidc.user));
     });
 
     app.listen(port, () => {
