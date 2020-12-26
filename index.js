@@ -2,12 +2,10 @@ const express = require("express");
 const MongoClient = require("mongodb").MongoClient;
 
 const app = express();
+require("dotenv").config();
 const port = 3000;
 
-MongoClient.connect(
-  "mongodb+srv://domenico:zLD9eTAf8eisJzQG@mongodf.b1spd.mongodb.net/BookmarksDB?retryWrites=true&w=majority",
-  { useUnifiedTopology: true }
-)
+MongoClient.connect(process.env.MONGO_SECRET, { useUnifiedTopology: true })
   .then((client) => {
     console.log("connected to DB");
     const db = client.db("bookmarksDB");
